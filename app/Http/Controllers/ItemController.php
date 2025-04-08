@@ -77,13 +77,13 @@ class ItemController extends Controller
     {
         $data = $request->validated();
         $oldPath = "";
-        
+
         if ($request->hasFile("image")) {
             $file = $request->file("image")->store("images", "public");
             $oldPath = $item->image ?? "";
             $data["image"] = $file;
         }
-        
+
         if ($item->update($data)) {
             if ($request->hasFile("image")) {
                 Storage::disk('public')->delete($oldPath);

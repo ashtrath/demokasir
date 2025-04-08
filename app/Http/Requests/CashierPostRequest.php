@@ -52,10 +52,11 @@ class CashierPostRequest extends FormRequest
                     });
                     // Validasi cash_tendered minimal harus sama dengan subtotal
                     if ($value < $subtotal) {
-                        $fail("Nilai {$attribute} harus minimal Rp".number_format($subtotal, 0, ',', '.'));
+                        $fail("Nilai {$attribute} harus minimal Rp" . number_format($subtotal, 0, ',', '.'));
                     }
                 },
-            ]
+            ],
+            'sale_datetime' => 'nullable|date',
         ];
     }
 }

@@ -3,6 +3,14 @@
         <h1 class="font-semibold text-3xl">Cashier</h1>
         <div class="flex gap-2 w-full h-full overflow-y-auto overflow-hidden">
             <div class="flex flex-col p-2 gap-0 items-start justify-start bg-white overflow-y-auto w-full h-full">
+                <div class="self-end flex flex-row justify-center items-center border">
+                    <input v-model="search" class="bg-transparent border-0" placeholder="Search..." type="text"
+                           @keyup.enter="router.get('', { search })">
+                    <button class="h-full flex justify-center items-center p-3 bg-primary"
+                            @click.prevent="router.get('', { search })">
+                        <i class="bx bx-search"></i>
+                    </button>
+                </div>
                 <button v-for="item in items" :key="item.id"
                         class="w-full flex flex-row gap-4 items-center py-4 px-3 hover:bg-gray-50 border-b border-gray-100"
                         @click="handleAddItem(item)">
@@ -65,6 +73,17 @@
                     </template>
                     <p v-else class="text-center mt-4">No Items Added</p>
                 </div>
+                <div class="px-2 mt-2">
+                    <p class="text-sm font-medium mb-1">Sale Date & Time</p>
+                    <input
+                        v-model="forms.sale_datetime"
+                        class="border-slate-500 p-1 w-full"
+                        type="datetime-local"
+                    />
+                    <p v-if="forms.errors.sale_datetime" class="text-red-500">
+                        {{ forms.errors.sale_datetime }}
+                    </p>
+                </div>
                 <div class="px-2">
                     <p class="text-sm font-medium mb-1">Cash Tendered</p>
                     <input
@@ -120,31 +139,37 @@
 </template>
 
 <script lang="ts" setup>
-import {useForm} from '@inertiajs/vue3';
-import {computed, InputHTMLAttributes} from 'vue';
+import {router, useForm} from "@inertiajs/vue3";
+import {computed, InputHTMLAttributes, ref, Ref} from "vue";
 import {printPdf} from "@/utils";
 
 const props = defineProps<{
-    items: Item[]
+    items: Item[];
 }>();
 
+const search: Ref<null | string> = ref(new URLSearchParams(window.location.search).get("search"));
+
 const forms = useForm<{
-    items: (Item & { qty: number })[],
-    cash_tendered: number,
+    items: (Item & { qty: number })[];
+    cash_tendered: number;
+    sale_datetime: string;
 }>({
     items: [],
     cash_tendered: 0,
+    sale_datetime: new Date().toISOString().slice(0, 16),
 });
 
 const change = computed(() => forms.cash_tendered - total.value);
-const total = computed(() => forms.items.reduce((prev, next) => prev += next.qty * next.sell_price!, 0))
+const total = computed(() =>
+    forms.items.reduce((prev, next) => (prev += next.qty * next.sell_price!), 0),
+);
 
 const handleAddItem = (item: Item) => {
-    const exist = forms.items.findIndex(v => v.id == item.id) >= 0;
-    const propItem = props.items.find(v => v.id == item.id);
+    const exist = forms.items.findIndex((v) => v.id == item.id) >= 0;
+    const propItem = props.items.find((v) => v.id == item.id);
     if (propItem!.stock > 0) {
         if (exist) {
-            forms.items.find(v => v.id == item.id)!.qty += 1;
+            forms.items.find((v) => v.id == item.id)!.qty += 1;
         } else {
             forms.items.push({
                 ...item,
@@ -153,11 +178,11 @@ const handleAddItem = (item: Item) => {
         }
         propItem!.stock -= 1;
     }
-}
+};
 
 const handleQty = (e: Event, item: Item & { qty: number }) => {
     let target = e.currentTarget as InputHTMLAttributes;
-    const propItem = props.items.find(v => v.id == item.id);
+    const propItem = props.items.find((v) => v.id == item.id);
     const qty = target.value;
     if (propItem!.stock + item.qty >= qty) {
         propItem!.stock += item.qty;
@@ -168,17 +193,17 @@ const handleQty = (e: Event, item: Item & { qty: number }) => {
         propItem!.stock = 0;
         target.value = item.qty;
     }
-}
+};
 
 const handleDelete = (item: Item & { qty: number }) => {
-    props.items.find(v => v.id == item.id)!.stock += item.qty;
-    forms.items = forms.items.filter(v => v.id != item.id);
-}
+    props.items.find((v) => v.id == item.id)!.stock += item.qty;
+    forms.items = forms.items.filter((v) => v.id != item.id);
+};
 
-const formatRp = (num: number) => new Intl.NumberFormat("id-ID", {
-    currency: "IDR",
-    style: "currency",
-    maximumFractionDigits: 0,
-}).format(num);
-
+const formatRp = (num: number) =>
+    new Intl.NumberFormat("id-ID", {
+        currency: "IDR",
+        style: "currency",
+        maximumFractionDigits: 0,
+    }).format(num);
 </script>

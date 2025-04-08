@@ -13,7 +13,7 @@ class CashierController extends Controller
     public function index()
     {
         return Inertia::render("cashier", [
-            "items" => Item::all(),
+            "items" => Item::search()->get(),
         ]);
     }
 
@@ -26,14 +26,24 @@ class CashierController extends Controller
         }, 0);
         $request["change"] = $request->total - $request->cash_tendered;
 
-        if ($sale = Sale::create($request->all())) {
+        // Create sale data array
+        $saleData = $request->all();
+
+        // If a custom datetime is provided, use it for created_at
+        if ($request->has('sale_datetime')) {
+            $saleData['created_at'] = $request->sale_datetime;
+        }
+
+        if ($sale = Sale::create($saleData)) {
             foreach ($request->items as $item) {
                 DetailSale::create([
                     "sale_id" => $sale->id,
                     "item_id" => $item["id"],
                     "qty" => $item["qty"],
                     "price" => $item["sell_price"],
-                    "total" => $item["qty"] * $item["sell_price"]
+                    "total" => $item["qty"] * $item["sell_price"],
+                    // Apply the same datetime to detail records if needed
+                    "created_at" => $sale->created_at
                 ]);
             }
 
